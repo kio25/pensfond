@@ -1,0 +1,12 @@
+28.04.2012
+изменила вход
+
+26.09.13
+поменяли в запросах  NVL(BUDGTAX9,' ') ='*' на 
+
+  (  ( NVL(BUDGTAX9,' ') ='*' and PAYSUM.PAY# not in (245,246,247) ) OR
+                      ( PAYSUM.PAY# in (245,246,247) 
+                        and  ( PAYSUM.year * 100 +PAYSUM.month ) >= 201307 
+                        and  FACTMON >= 201307 
+                       )  )  
+

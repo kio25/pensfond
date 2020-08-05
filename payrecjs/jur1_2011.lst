@@ -1,0 +1,440 @@
+     jur1_2011.txt
+     январь 2011 г.
+
+     p:\POSTANOV\ПЕНСФОНД\ПЕРЕРАСЧЕТ\2011
+
+
+             ПОДГОТОВКА К ПЕРЕРАСЧЕТУ НАЛОГА НА ФОНД ОПЛАТЫ
+             ТРУДА С ЮРИДИЧЕСКОГО ЛИЦА. 
+
+
+         I.  ФОРМИРОВАНИЕ ТАБЛИЦЫ ДЛЯ НАЧИСЛЕНИЯ НАЛОГА 
+             С ЮР.ЛИЦА ПО РАСЧЕТНОМУ МЕСЯЦУ.
+             -----------------------------------------------
+
+    Основание : введение в действие с 01.01.2011 г. постановления правления ПФУ 
+    "Порядок формування та подання страхувальниками звiту щодо сум нарахованого 
+    Єдиного внеску на загальнообов"язкове державне соцiальне страхування "
+    от 08.10.2010 г. N 22-2.
+
+    За основу возьмем программу PAYRECJ1.
+    Новую программу назовем PAYRECJS.
+
+    В таблицу PAY добавлено новое поле FLAGVO. 
+    Нам необходимо проверять следующие значения FLAGVO :
+
+      1  -  заработная плата и отпускные
+      2  -  больничные листы за счет предприятия 
+            и больничные листы (произв.травмы)
+      3  -  больничные листы за счет ФСС.
+      4  -  зар.плата по ГПД (гражданско-правовым договорам)
+
+
+      Используем существующую таблицу PAYRECJUR.
+
+           Структура таблицы PAYRECJUR.
+
+   EMP#     not null  number(5)    Табельный номер
+   SHOP               number(2)    Код цеха
+   YEAR     not null  number(4)    Год расчетного периода
+   MONTH    not null  number(2)    Месяц расчетного периода
+   EXPEND#            number(9)    Шифр производственных затрат (ШПЗ)
+   SUM2     not null  number(18,2) Сумма для удержания взноса с ограничением SumMax
+   SUM22    not null  number(18,2) Сумма>SumMax грн.,с кот.не берется удержание
+   FLAGINV            number(1)    Признак инвалидности
+   FLAGCORR           number(1)    Признак корректировки/создания новой записи
+                                   по FACTMON
+   DBUSER             char(30)     Регистрация ' DD/MM/YY HH:SS USERNAME'
+
+
+   В поле SUM2 будем записывать сумму начислений на зар.плату.
+   В поле SUM22 будем записывать сумму зар.платы>SumMax,с кот.не берется
+                сбор соцстраха.
+
+   Добавим новые поля:
+
+     SUM3     number(18,2) Сумма начисл.на больничные листы за счет пред-я и произ.травмы
+     SUM4     number(18,2) Сумма начисл.на больничные листы за счет ФСС
+     SUM5     number(18,2) Сумма начисл.вознаграждения по граж.прав.договорам
+     SUM33    number(18,2) Сумма с больн.лис.за счет пр>SumMax ,с кот.не берется сбор соцстраха
+     SUM44    number(18,2) Сумма с больн.лис.за счет ФСС>SumMax ,с кот.не берется сбор соцстраха
+     SUM55    number(18,2) Сумма зар.по ГПД>SumMax ,с кот.не берется сбор соцстраха
+
+                           где SumMax - верхняя граница для удержания из з/пл.
+
+
+          Панель для формирования таблицы PAYRECJUR :
+
+   ┌───────────────────────────┬────────────────────────────┐
+   │     ████   - Год          │  00:00:00  - Время расчета │
+   │                           │                            │
+   │       ██   - Месяц        │                            │
+   │            - таб.номер    │                            │
+   ├───────────────────────────┴────────────────────────────│
+   │||||||||||||||||||||||||||||||||||||||||||||||  ||||| % │
+   └────────────────────────────────────────────────────────┘
+
+ Год автоматически сделать равным году системной даты.
+ Предоставить возможность корректировки.
+
+ Месяц автоматически сделать равным месяцу системной даты.
+ Предоставить возможность корректировки.
+
+ Необходимо предусмотреть возможность прерывания расчета по Esc или по Ctrl/Break.
+
+ Обозначим информацию, вводимую в панели :
+     YEARR  - год
+     MONTHR - месяц
+     EMP    - таб.номер ( nvl(EMP,0) = 0 - по всем таб.номерам ) 
+
+
+           Алгоритм формирования таблицы PAYRECJUR .
+       - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ Удалить все записи из таблицы по условиям:
+     YEAR  = YEARR  and
+     MONTH = MONTHR and
+     (EMP# = EMP or nvl(EMP,0)=0 )
+
+
+ Для определения SumMax выбрать значение NVAL из справочника SYSINDEX c
+ IND# = 541 при условии,что 1-е  число  введенного пользователем года,
+ месяца >= максимально возможного значения  поля INDATE.
+
+
+ Применим алгоритм, который используется при формировании временной таблицы PAYTMP5.
+
+ I.1. Выбрать по табельному номеру все записи из таблицы PAYSUM,у
+      которых PAYSUM.MONTH = введенному месяцу MONTH и
+      PAYSUM.YEAR = введенному году YEAR и PAYSUM.PAY# = PAY.PAY#
+
+          и  ( PAY.PAYTYPE=1 (начисления) или PAY# =4) .
+
+      Приоритет выборки записей определяется по PAY.FLAGVO,  потом по
+      PAY.PAYPRTY в порядке возростания .
+      В выбранной записи нужны поля DEPT#,PAY#,EXPEND#,SUM.
+      Вместе с BUDGTAX1='*' нужна проверка :
+      проверка :  ( BUDGTAX8='*' or BUDGTAX7='*' or BUDGTAX9='*' or BUDGTAX0='*' ).  
+
+
+ I.2. Создадим для одного табельного номера временный массив DTMP
+      со структурой:
+      SHOP     number(2)    Код цеха
+      PAY#     number(3)    Код вида оплат, удеpж.
+      EXPEND#  number(13)   Шифp пpоизводственных затpат (ШПЗ)
+      SUM1     number(18,2) Сумма начислений
+      SUM2     number(18,2) Сумма начислений на зар.плату
+      SUM3     number(18,2) Сумма начисл.на больничные листы за счет пред-я и произ.травмы
+      SUM4     number(18,2) Сумма начисл.на больничные листы за счет ФСС
+      SUM5     number(18,2) Сумма начисл.вознаграждения по граж.прав.договорам
+      SUM22    number(18,2) Сумма зар.платы>SumMax грн.,с кот.не берется сбор соцстраха
+      SUM33    number(18,2) Сумма с больн.лис.за счет пр>SumMax,с кот.не берется сбор соцстраха
+      SUM44    number(18,2) Сумма с больн.лис.за счет ФСС>SumMax ,с кот.не берется сбор соцстраха
+      SUM55    number(18,2) Сумма зар.по ГПД>SumMax ,с кот.не берется сбор соцстраха
+                           где SumMax - верхняя граница для удержания из з/пл.
+
+      РАЗМЕРНОСТЬ ВРЕМЕННОГО МАССИВА - 60 ВИДОВ ОПЛАТ.
+
+    Заполнение временного массива:
+
+    а). DTMP.SHOP    = DEPT.SHOPOLD,взятое по условию PAYSUM.DEPT# =
+                       DEPT.DEPT#
+    б). DTMP.PAY#    = PAYSUM.PAY#
+
+    г). DTMP.SUM1    = PAYSUM.SUM
+    д). заполнение полей DTMP.SUM2,DTMP.SUM22.
+
+    Если сумма SUM(DTMP.SUM1) <= SumMax,
+    то - DTMP.SUM2 = DTMP.SUM1 если DTMP.PAY# = PAYTBL.PAY#
+                               и FLAGVO=1(зар.плата).
+       - DTMP.SUM22 = 0
+    иначе
+    1. Выбрать первую запись с FLAGVO=1(зар.плата).
+       SUMPR = DTMP.SUM1
+    2. SUM0 = SUMPR
+    3. SUMI = SUMPR
+    4. SumMaxU = SumMax - SUMI
+    5. Пока SumMaxU >= 0
+       - заполнить поле DTMP.SUM2
+         DTMP.SUM2 = SUM0
+       - заполнить поле DTMP.SUM22
+         DTMP.SUM22 = 0
+       - взять следующую запись
+         SUMPR = DTMP.SUM2
+       - SUM0 = SUMPR
+       - SUMI = SUMI + SUM0
+       - SumMaxU = SumMax - SUMI
+       Иначе
+       - SUM0 = SUM0 + SumMaxU
+       - заполнить поле DTMP.SUM2
+         DTMP.SUM2 = SUM0
+       - заполнить поле DTMP.SUM22
+         DTMP.SUM22 = abs(SumMaxU)
+    6. По всем остальным записям
+       DTMP.SUM2 = 0
+       DTMP.SUM22 = DTMP.SUM1
+       DTMP.SUM3 = 0
+       DTMP.SUM33 = DTMP.SUM3
+       DTMP.SUM4 = 0
+       DTMP.SUM44 = DTMP.SUM4
+
+
+    е). Для заполнение полей DTMP.SUM3,DTMP.SUM33 используем записи
+        если DTMP.PAY# = PAYTBL.PAY# и PAYTBL.FLAGVO=2(больничные за счет
+                                     предп. и произ.травмы).
+    Если SumMaxU < 0
+       DTMP.SUM3 = 0
+       DTMP.SUM33 = DTMP.SUM1
+    Иначе
+    1. Выбрать первую запись с FLAGVO=2
+       SUMPR = DTMP.SUM1
+    2. SUM0 = SUMPR
+    3. SUMI = SUMPR
+    4. SumMaxU = SumMaxU - SUMI
+    5. Пока SumMaxU >= 0
+       - заполнить поле DTMP.SUM3
+         DTMP.SUM3 = SUM0
+       - заполнить поле DTMP.SUM33
+         DTMP.SUM33 = 0
+       - взять следующую запись
+         SUMPR = DTMP.SUM3
+       - SUM0 = SUMPR
+       - SUMI = SUMI + SUM0
+       - SumMaxU = SumMaxU - SUMI
+       Иначе
+       - SUM0 = SUM0 + SumMaxU
+       - заполнить поле DTMP.SUM3
+         DTMP.SUM3 = SUM0
+       - заполнить поле DTMP.SUM33
+         DTMP.SUM33 = abs(SumMaxU)
+    6. По всем остальным записям
+       DTMP.SUM3 = 0
+       DTMP.SUM33 = DTMP.SUM1
+
+
+    ж). Для заполнение полей DTMP.SUM3,DTMP.SUM33 используем записи
+        если DTMP.PAY# = PAYTBL.PAY# и PAYTBL.FLAGVO=3(больничные за счет ФСС)
+    Если SumMaxU < 0
+       DTMP.SUM4 = 0
+       DTMP.SUM44 = DTMP.SUM1
+    Иначе
+    1. Выбрать первую запись с FLAGVO=3
+       SUMPR = DTMP.SUM1
+    2. SUM0 = SUMPR
+    3. SUMI = SUMPR
+    4. SumMaxU = SumMaxU - SUMI
+    5. Пока SumMaxU >= 0
+       - заполнить поле DTMP.SUM4
+         DTMP.SUM4 = SUM0
+       - заполнить поле DTMP.SUM44
+         DTMP.SUM44 = 0
+       - взять следующую запись
+         SUMPR = DTMP.SUM1
+       - SUM0 = SUMPR
+       - SUMI = SUMI + SUM0
+       - SumMaxU = SumMaxU - SUMI
+       Иначе
+       - SUM0 = SUM0 + SumMaxU
+       - заполнить поле DTMP.SUM4
+         DTMP.SUM4 = SUM0
+       - заполнить поле DTMP.SUM44
+         DTMP.SUM44 = abs(SumMaxU)
+    6. По всем остальным записям
+       DTMP.SUM4 = 0
+       DTMP.SUM44 = DTMP.SUM1
+
+
+    з). Для заполнение полей DTMP.SUM5,DTMP.SUM55 используем записи
+        если DTMP.PAY# = PAYTBL.PAY# и PAYTBL.FLAGVO=4
+        (оплата по граж.прововым договорам).
+    1. Выбрать первую запись с FLAGVO=4
+       SUMPR = DTMP.SUM1
+    2. SUM0 = SUMPR
+    3. SUMI = SUMPR
+    4. SumMaxU = SumMax - SUMI
+    5. Пока SumMaxU >= 0
+       - заполнить поле DTMP.SUM5
+         DTMP.SUM5 = SUM0
+       - заполнить поле DTMP.SUM55
+         DTMP.SUM55 = 0
+       - взять следующую запись
+         SUMPR = DTMP.SUM1
+       - SUM0 = SUMPR
+       - SUMI = SUMI + SUM0
+       - SumMaxU = SumMaxU - SUMI
+       Иначе
+       - SUM0 = SUM0 + SumMaxU
+       - заполнить поле DTMP.SUM5
+         DTMP.SUM5 = SUM0
+       - заполнить поле DTMP.SUM55
+         DTMP.SUM55 = abs(SumMaxU)
+    6. По всем остальным записям
+       DTMP.SUM5 = 0
+       DTMP.SUM55 = DTMP.SUM1
+
+ I.3. Для формирования записей в таблице PAYRECJUR необходимо:
+        - если в таблице  PAYRECJUR существует запись с PAYRECJUR.EMP# = DTMP.EMP#
+          и    PAYRECJUR.EXPEND# = DTMP.EXPEND#
+          и PAYRECJUR.YEAR = YEARR   и  PAYRECJUR.MONTH = MONTHR  , то
+
+       PAYRECJUR.SUM2  = PAYRECJUR.SUM2  + DTMP.SUM2
+       PAYRECJUR.SUM22 = PAYRECJUR.SUM22 + DTMP.SUM22
+       PAYRECJUR.SUM3  = PAYRECJUR.SUM3 + DTMP.SUM3,
+       PAYRECJUR.SUM4  = PAYRECJUR.SUM4 + DTMP.SUM4,
+       PAYRECJUR.SUM5  = PAYRECJUR.SUM5 + DTMP.SUM5,
+       PAYRECJUR.SUM22 = PAYRECJUR.SUM22 + DTMP.SUM22,
+       PAYRECJUR.SUM33 = PAYRECJUR.SUM33 + DTMP.SUM33,
+       PAYRECJUR.SUM44 = PAYRECJUR.SUM44 + DTMP.SUM44,
+       PAYRECJUR.SUM55 = PAYRECJUR.SUM55 + DTMP.SUM55.
+
+          PAYRECJUR.FLAGINV  = PFTSUMN.FLAGINV , если PAYRECJUR.EMP# = PFTSUMN.EMP#
+                                и   PFTSUMN.YEAR = YEARR и PFTSUMN = MONTHR
+          PAYRECJUR.FLAGCORR = 1
+
+        - иначе сформировать новую запись в таблице PAYRECJUR,у которой:
+
+       PAYRECJUR.EMP#     = DTMP.EMP#,
+       PAYRECJUR.YEAR     = YEARR,
+       PAYRECJUR.MONTH    = MONTHR,
+       PAYRECJUR.SHOP     = DTMP.SHOP,
+       PAYRECJUR.EXPEND#  = DTMP.EXPEND#,
+       PAYRECJUR.SUM2     = DTMP.SUM2,
+       PAYRECJUR.SUM22    = DTMP.SUM22,
+       PAYRECJUR.SUM3  = PAYRECJUR.SUM3 + DTMP.SUM3,
+       PAYRECJUR.SUM4  = PAYRECJUR.SUM4 + DTMP.SUM4,
+       PAYRECJUR.SUM5  = PAYRECJUR.SUM5 + DTMP.SUM5,
+       PAYRECJUR.SUM22 = PAYRECJUR.SUM22 + DTMP.SUM22,
+       PAYRECJUR.SUM33 = PAYRECJUR.SUM33 + DTMP.SUM33,
+       PAYRECJUR.SUM44 = PAYRECJUR.SUM44 + DTMP.SUM44,
+       PAYRECJUR.SUM55 = PAYRECJUR.SUM55 + DTMP.SUM55.
+
+       PAYRECJUR.FLAGINV  = PFTSUMN.FLAGINV , если PAYRECJUR.EMP# = PFTSUMN.EMP#
+                           и   PFTSUMN.YEAR = YEARR и PFTSUMN = MONTHR
+       PAYRECJUR.FLAGCORR = 0
+
+
+    Программу добавить в оболочку zavsvod.exe
+    в пункт "Таблица для пенсионного фонда по юр.лицу"
+    в пункт "Формирование таблицы по месяцу начисления"
+
+
+
+         II. КОРРЕКТИРОВКА ТАБЛИЦЫ ДЛЯ НАЧИСЛЕНИЯ НАЛОГА 
+             С ЮР.ЛИЦА ПО ФАКТИЧЕСКОМУ МЕСЯЦУ.
+             -----------------------------------------------
+
+
+    За основу возьмем программу PAYREJ31.
+    Новую программу назовем PAYRECJK.
+
+          Панель для корректировки таблицы PAYRECJUR :
+
+   ┌─────────────────────────┬────────────────────────────┐
+   │   ████ - Год            │  00:00:00  - Время расчета │
+   │                         │                            │
+   │     ██ - Месяц          │                            │
+   │        - таб.номер(min) │                            │
+   │        - таб.номер(max) │                            │
+   ├─────────────────────────┴────────────────────────────│
+   │||||||||||||||||||||||||||||||||||||||||||||  ||||| % │
+   └──────────────────────────────────────────────────────┘
+
+     Обозначим информацию, вводимую в панели:
+     Год                     - YEARR
+     Месяц                   - MONTHR
+     табельный номер (min)   - EMPMIN
+     табельный номер (max)   - EMPMAX
+
+
+
+ 1.    Основной запрос :
+
+       SELECT DISTINCT PAYSUM.EMP#,FACTMON
+
+       FROM   PAYSUM,PAYTBL
+       WHERE                           
+
+              PAYSUM.EMP# BETWEEN EMPMIN AND EMPMAX AND
+              YEAR  = YEARR  AND MONTH= MONTHR AND
+              PAYSUM.PAY# < 300 AND
+              PAYSUM.PAY# = PAYTBL.PAY# AND
+              NVL(BUDGTAX1,' ') ='*'
+
+       ORDER  BY PAYSUM.EMP#,PAYSUM.FACTMON
+
+    Обозначим :
+
+    EMP      - обрабатываемый таб.номер 
+    FACTMONF - обрабатываемый FACTMONF
+    YEARF    - год, выделенный из FACTMONF
+    MONTHF   - месяц, выделенный из FACTMONF
+
+    Если YEARF != YEARR , то переход на следующий FACTMON.
+    Иначе :
+
+ 2.    Запрос для выборки записей :
+
+    //  "зарплата", начисленная в том месяце, за который корректируем таблицу 
+         (кроме отпускных и больничных) 
+
+    SELECT    DEPT.SHOPOLD,                                
+              PAYSUM.PAY#,
+              PAYSUM.EXPEND#,
+              PAYSUM.EMP#,
+              PAYSUM.SUM,
+              FLAGVO
+    FROM      PAYSUM,DEPT,PAYTBL,PAY
+    WHERE                     MONTH = MONTHF AND  YEAR = YEARF  AND
+              PAYSUM.PAY# < 300 AND
+              PAYSUM.PAY# = PAY.PAY# AND
+              PAYSUM.PAY# = PAYTBL.PAY# AND
+              PAYSUM.EMP# between EMPMIN and EMPMAX AND
+              NVL(BUDGTAX1,' ') ='*'
+              PAYTBL.BUDGTAX8 = '*' AND                          /* входимость по зарплате */
+              PAYSUM.DEPT# = DEPT.DEPT#(+) 
+
+    UNION   ALL (!!)
+
+    //  больничные ,начисленные по FACTMON того месяца,
+    //   за который корректируем таблицу 
+
+    SELECT    DEPT.SHOPOLD,                                
+              PAYSUM.PAY#,
+              PAYSUM.EXPEND#,
+              PAYSUM.EMP#,
+              PAYSUM.SUM,
+              FLAGVO
+    FROM      PAYSUM,DEPT,PAYTBL,PAY
+    WHERE           FACTMON = YEARF*100 + MONTHF AND      
+              PAYSUM.EMP# between EMPMIN and EMPMAX AND
+              PAYSUM.PAY# < 300 AND
+              PAYSUM.PAY# = PAY.PAY# AND
+              PAYSUM.PAY# = PAYTBL.PAY# AND
+              NVL(BUDGTAX1,' ') ='*'
+              ( PAYTBL.BUDGTAX7 = '*' or PAYTBL.BUDGTAX9 = '*')  AND
+              PAYSUM.DEPT# = DEPT.DEPT#(+)
+
+    ORDER  BY PAYSUM.EMP# ,FLAGVO, decode(PAY.PAYPRTY,0,9,PAY.PAYPRTY), 
+              EXPEND#,PAYSUM.PAY#,SHOPOLD 
+
+
+ 3.   FLAGINV - флаг инвалидности по обрабатываемому таб.номеру EMP.
+
+      EXEC SQL SELECT NVL(FLAGINV,0) 
+             FROM PFTSUMN
+             WHERE EMP# = EMP  AND
+                   MONTH= MONTHF AND
+                   YEAR = YEARF 
+
+
+    Переформирование записей в таблице PAYRECJUR производится по тому же
+    алгоритму, что и при формировании записей по расчетному месяцу MONTH (см. I).
+
+
+    Программу добавить в оболочку zavsvod.exe
+    в пункт "Таблица для пенсионного фонда по юр.лицу"
+    в пункт "Корректировка таблицы"
+
+
+
+

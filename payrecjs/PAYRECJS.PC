@@ -1,0 +1,827 @@
+#include <stdio.h>
+#include <io.h>
+#include <conio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <time.h>
+#include <app.h>
+#include <vcsyse.h>
+#include <oracle.h>
+
+EXEC ORACLE OPTION (ORACA = YES);
+
+#define  PAYMAIN 1
+#define  REPFILE "C:\\REPORT.LST"
+
+time_t   tstart, tend;    /* For difftime         */
+size_t   HH,MM,SS;
+
+static void newblip(void);
+static int  panel01(void);
+
+int  getche (void);
+static int  Info01 (float );
+
+
+/* ---------------------------------------------------------------------------
+   Host - пеpеменные
+-----------------------------------------------------------------------------*/
+
+EXEC SQL BEGIN DECLARE SECTION;
+     VARCHAR uid [30];
+     VARCHAR pwd [30];
+     char    dbuser [30];
+     char    *curdate  = "01-JAN-98";
+     char    *datemin  = "01-JAN-98";
+     char    *edatemin = "01/01/98";
+     char    *datemax  = "31-JAN-98";
+     char    *ecurdate = "01/01/98";
+     long    empNum;
+     char    *simv1 = " ";
+     char    *simv2 = " ";
+     char    *simv3 = " ";
+     char    *simv4 = " ";
+     char    *inval = " ";
+     int     flaginv;
+     int     flaginv1;
+     int     flagcorr;
+     int     shop;                    /* цех                                 */
+     int     shop1;                 /* цех                                           */
+     int     shop2;                        /* цех                                                       */
+     int     month;
+     int     year;
+     int     pay,payprty;
+     int     pay_mp[20];
+     double  sum;                    /* "Сумма начисл." по коду     */
+     double  sum1;                    /* "Сумма начисл." по коду     */
+     double  sum2,sum3,sum4,sum5;                    /* "Сумма начисл." по коду     */
+     double  sum22,sum33,sum44,sum55;                 /* "Сумма начисл." по коду     */
+     double  payHelpMax;                    /* "Сумма начисл." по коду     */
+     double  payHelpSum2;                    /* "Сумма начисл." по коду     */
+     long    emp;
+     long    emp1;
+     long    empik,empmin,empmax;
+     long    empOld;
+     long    expend;
+     long    expend1;
+     long    expend2;
+     long    expOld;
+     long    expmp;
+     long    dept      = 0L;
+     char    rowid[19];
+     int     flagvo;
+     int     flagvo2;
+
+
+
+EXEC SQL END DECLARE SECTION;
+
+  /* Общие пеpеменные                                                       */
+  unsigned int  ret, wnd;
+  int       i, j, j5,yy,pr;
+  long      empInd=0;
+  int    panelflag  = 0;      /* Флажок панели для ввода паpаметpов         */
+  int    calcflag  = 0;       /* Флажoк записи выходной табулягpаммы        */
+  int      logonFlag  = 0;       /* Флажoк записи выходной табулягpаммы              */
+  int    flagExit  = 0;       /* Флажoк для выхода из цикла по оконч.чтения курсора  */
+  FILE   *report;
+  char   msg[80];
+  long    emp_t[60]  ={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};                 /* цех                                           */
+  int     shop_t[60] ={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};                 /* цех                                           */
+  int     pay_t[60]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  long    expend_t[60]={0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,
+                        0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L};
+  int     flaginv_t[60] ={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  int     flagvo_t[60] ={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  double sum1_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  double sum2_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  double sum22_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  double sum3_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  double sum33_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  double sum4_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  double sum44_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  double sum5_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  double sum55_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+
+
+  double sumt_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  double sumtt_t[60]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+                     0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+
+
+
+  double  sum11;                 /* "Сумма начисл." по коду     */
+  double  sum21;                 /* "Сумма начисл." по коду     */
+  double  sum22;                 /* "Сумма начисл." по коду     */
+  double  sumi;                 /* "Сумма начисл." по коду     */
+  double  sumii;                 /* "Сумма начисл." по коду     */
+  double  sumMax;               /* "Сумма начисл." по коду     */
+  int     flagvo1;
+  double sumpr,sumo,sumi,summaxu;
+
+
+static int proc01 (double sumt_t[],double sumtt_t[],int i);
+static int proc02 (void);
+/*******************************************************
+*                                                       *
+*  Заполнение таблицы PAYRECJUR до расчета удержаний    *
+*       в пенсионный фонд с юр.лица                     *
+*  Результаты pасчета:                                  *
+*           формирование записей таблицы PAYRECJUR      *
+*                                                       *
+********************************************************/
+
+int main (int   cnt,       /* cnt     - счетчик параметров командной строки */
+    char  *args[])   {  /* args[i] - указатель на значение i-го параметра*/
+
+  oraca.orastxtf = 3;                 /* Уpовень диагностики ошибок         */
+
+  if ((report = fopen( REPFILE, "w+t")) == NULL){
+       gotoxy(24,0);
+       printf("%c%c[1;37;41mОшибка пpи откpытии файла отчета. Аваpийный выход\n",0x07,0x1b);
+       getche();
+       return(0);
+  }
+
+  /* Обpаботка паpаметpов командной стpоки */
+  if (cnt != 2) return(0);
+  strcpy(uid.arr,args[1]);
+  uid.len  = strlen(uid.arr);
+
+/* ---------------------------------------------------------------------------
+ Logon to ORACLE, and open the cursors. The program exits if any errors occur.
+----------------------------------------------------------------------------*/
+
+  EXEC SQL CONNECT :uid;
+
+  if (sqlca.sqlcode){
+     gotoxy(24,0);
+     printf("%c%c[1;37;41mORA%i. Ошибка пpи подключении к БД. Нажмите любую клавишу.                  ",0x07,0x1b,sqlca.sqlcode);
+     getche();
+     return(0);
+  }
+
+  EXEC SQL WHENEVER SQLERROR GOTO errexit;
+  gotoxy(22,65); printf("FreeMem = %3iK",(int)(freemem()/1000));
+
+  printf("%c[1;33;44m",0x1B);                        /* Желтый на синем     */
+
+
+/* ---------------------------------------------------------------------------
+     Опеpатоpы запpосов
+--------------------------------------------------------------------------- */
+
+  EXEC SQL DECLARE C1 CURSOR FOR
+       SELECT DEPT.SHOPOLD,
+              PAYSUM.PAY#,
+              PAYSUM.EXPEND#,
+              PAYSUM.EMP#,
+              PAYSUM.SUM,
+              DECODE(NVL(PAY.FLAGVO,0),0,1,PAY.FLAGVO),
+             decode(PAY.PAYPRTY,0,9,PAY.PAYPRTY)
+       FROM   PAYSUM,DEPT,PAYTBL,PAY
+       WHERE  MONTH = :month AND
+              YEAR  = :year  AND
+              (PAYSUM.EMP# BETWEEN :empmin AND :empmax)  AND
+              PAYSUM.PAY# < 300 AND
+              PAYSUM.PAY# = PAY.PAY# AND
+              PAYSUM.PAY# = PAYTBL.PAY# AND
+              ( NVL(BUDGTAX8,' ') ='*' or NVL(BUDGTAX0,' ') ='*' OR
+               NVL(BUDGTAX7,' ') ='*' or NVL(BUDGTAX9,' ') ='*' ) AND
+              PAYSUM.DEPT# = DEPT.DEPT#(+)
+       ORDER  BY 4,6,7,3,2,1;
+
+
+
+/* -----------------------------------------------------------------------------
+     Тело программы
+--------------------------------------------------------------------------- */
+
+  printf("%c[1;33;44m",0x1B);                        /* Желтый на синем     */
+  if ((report = fopen(REPFILE, "w+t")) == NULL) return(1);
+  fprintf(report,"%cP%cx%c%c0\n",0x1b,0x1b,0x00,0x1b);
+  /* Внешний цикл запpоса. Панель паpаметpов                                */
+
+  for (; ;){  
+     empInd  = 0L;
+
+     if (!panel01()){                 /* Запpос паpаметpов pасчета          */
+        fprintf(report,"%c2",0x1b);
+        CURSON;
+        printf("%c[1;33;40m",0x1b);
+                                /* Ноpмальное завеpшение pаботы       */
+                                /* пpогpаммы. (По ESC - коду)         */
+
+        EXEC SQL COMMIT WORK RELEASE;
+        fcloseall();
+                                /* Вывод отчета                       */
+
+        sprintf(msg,"LIST %s", REPFILE);
+        if (calcflag) system(msg);
+                                /* Выход из пpогpаммы                 */
+        return(0);
+     }   
+     calcflag = 1;
+     time( &tstart );       /* Use time and difftime for timing to seconds  */
+     Info01(0.0f);
+     empNum = 0L;               /* empNum -  число табельных номеров  */
+                                /*             для pасчета          */
+     newblip();
+     strcpy(dbuser,strlenset(dbuserSet(),30));
+     if(empmin==0) empmin=1;
+     if(empmax==0) empmax=99999;
+
+
+
+
+     EXEC SQL SELECT COUNT(PAYSUM.EMP#)
+            INTO   :empNum
+       FROM   PAYSUM,DEPT,PAYTBL,PAY
+       WHERE  MONTH = :month AND
+              YEAR  = :year  AND
+              (PAYSUM.EMP# BETWEEN :empmin AND :empmax)  AND
+              PAYSUM.PAY# < 300 AND
+              PAYSUM.PAY# = PAY.PAY# AND
+              PAYSUM.PAY# = PAYTBL.PAY# AND
+              ( NVL(BUDGTAX8,' ') ='*' or NVL(BUDGTAX0,' ') ='*' OR
+               NVL(BUDGTAX7,' ') ='*' or NVL(BUDGTAX9,' ') ='*' ) AND
+              PAYSUM.DEPT# = DEPT.DEPT#(+);
+
+     if (!empNum) continue;
+     gotoxy(7,48);  printf("│%0.6lu",empNum);
+
+     newblip();
+     gotoxy(10,57);  printf("D");
+
+     EXEC SQL DELETE FROM PAYRECJUR
+              WHERE  YEAR = :year
+                AND  MONTH= :month  AND
+              (EMP# BETWEEN :empmin AND :empmax) ;
+//                AND (EMP# in (:empmin, :empmax) or :empik=0);
+
+     newblip();
+     empInd=0L;
+
+ if(year>=2000) yy=year-2000;
+ else yy=year-1999;
+ sprintf(datemin,"01-%.3s-%.2i",monthname(month,2),yy);
+ sumMax=sysindex(541,datemin);
+ fprintf(report,"DATE = %s  SUMMAX = %7.2f\n",datemin,sumMax);
+     newblip();
+
+     EXEC SQL OPEN C1;
+     i=0;
+     flagExit = 0;
+
+     for (empInd=0L; empInd <= empNum ; empInd++){  
+         sum=0;
+         shop=0;
+         pay=0;
+         expend=0;
+         flagvo=0;
+//       emp=0;
+
+         newblip();
+
+ if (!flagExit) {  
+         EXEC SQL FETCH C1 INTO  :shop, :pay, :expend, :emp, :sum, :flagvo, :payprty;
+         if (sqlca.sqlcode != 0 ) flagExit = 1;
+
+         Info01(100.0f*((float)empInd/(float)empNum));
+        fprintf (report, "* 1 * FETCH  EMP = % 5lu, SHOP = %3i, EXP = %5lu, PAY = %i SUM = %7.2f FLAGVO=%i FLAGEXIT=%i \n",
+                                     emp, shop, expend, pay, sum, flagvo, flagExit);
+         gotoxy(7,42);  printf("%0.6lu",empInd);
+         gotoxy(8,15);  printf("%3i",shop);
+         gotoxy(8,43);  printf("%0.5u",emp);
+         flaginv = 0;
+         flagcorr = 1;
+
+         if (flagvo==0) flagvo=1;
+
+      newblip();
+      if (!flagExit)
+     EXEC SQL SELECT DECODE(INVAL,'*',1,0)
+                INTO :flaginv
+                FROM EMPLOY
+               WHERE emp#=:emp;
+
+         if (!empInd) empOld = emp;
+      }    
+
+
+            if (empOld == emp && !flagExit) {
+
+              shop_t[i] =shop;
+              emp_t[i]=emp;
+              pay_t[i]=pay;
+              expend_t[i] = expend;
+              flaginv_t[i] = flaginv;
+              flagvo_t[i] = flagvo;
+              sum1_t[i]=sum;
+            switch (flagvo)
+                { case 1: sum2_t[i]=sum;
+                          sum22_t[i]=0.0;
+                          sum3_t[i]=0.0;  
+                          sum33_t[i]=0.0 ;
+                          sum4_t[i]=0.0;  
+                          sum44_t[i]=0.0 ;
+                          sum5_t[i]=0.0;  
+                          sum55_t[i]=0.0 ;
+                           break;
+
+                  case 2: sum3_t[i]=sum;
+                          sum33_t[i]=0.0 ;
+                          sum2_t[i]=0.0;  
+                          sum22_t[i]=0.0 ;
+                          sum4_t[i]=0.0;  
+                          sum44_t[i]=0.0 ;
+                          sum5_t[i]=0.0;  
+                          sum55_t[i]=0.0 ;
+                           break;
+
+
+                  case 3: sum4_t[i]=sum;
+                          sum44_t[i]=0.0;
+                          sum2_t[i]=0.0;  
+                          sum22_t[i]=0.0 ;
+                          sum5_t[i]=0.0;  
+                          sum55_t[i]=0.0 ;
+                          sum3_t[i]=0.0;  
+                          sum33_t[i]=0.0 ;
+                          break;
+                  case 4: sum5_t[i]=sum;
+                          sum55_t[i]=0.0;
+                          sum2_t[i]=0.0;  
+                          sum22_t[i]=0.0 ;
+                          sum3_t[i]=0.0;  
+                          sum33_t[i]=0.0 ;
+                          sum4_t[i]=0.0;  
+                          sum44_t[i]=0.0 ;
+                          break;
+                }
+
+
+
+
+/*
+
+            switch (flagvo)
+                { case 1: sum2_t[i]=sum;
+                          sum22_t[i]=0.0;break;
+                  case 2: sum3_t[i]=sum;
+                          sum33_t[i]=0.0 ;break;
+                  case 3: sum4_t[i]=sum;
+                          sum44_t[i]=0.0;break;
+                  case 4: sum5_t[i]=sum;
+                          sum55_t[i]=0.0;break;
+                }
+ */        
+
+              sum11+=sum;
+
+              newblip();
+              i++;
+              if (i>=60) {
+                       gotoxy(24,0);
+                       printf("%c%c[1;37;41m Массив > 60. Аваpийный выход\n",0x07,0x1b);
+                       getche();
+                       return(0);
+                  }
+
+             }
+
+          else  {
+             if (sum11 > sumMax)  proc02();  // пересчет массива при превышении Summax
+
+                for (j=0; j < i; j++){     
+                   emp1 = emp_t[j];
+                   shop1= shop_t[j];
+                   expend1=expend_t[j];
+                   flaginv1=flaginv_t[j];
+                   flagvo2=flagvo_t[j];
+                   sum1 = sum1_t[j];
+                   sum2 = sum2_t[j];
+                   sum22 = sum22_t[j];
+                   sum3 = sum3_t[j];
+                   sum33 = sum33_t[j];
+                   sum4 = sum4_t[j];
+                   sum44 = sum44_t[j];
+                   sum5 = sum5_t[j];
+                   sum55 = sum55_t[j];
+
+
+                   newblip();
+
+                   EXEC SQL SELECT ROWID INTO :rowid
+                              FROM     PAYRECJUR
+                         WHERE  EMP# = :emp1   AND
+                                MONTH = :month AND
+                                YEAR = :year AND
+                                SHOP = :shop1 AND
+                                EXPEND# =:expend1;
+
+                  if (sqlca.sqlcode != 0) {   
+                  gotoxy(10,57);  printf("I");
+                  newblip();
+
+                  fprintf (report, "1 ВСТАВКА  FL= %i EMP = %5lu, SHOP = %3i, YEAR=%i, MONTH=%i, EXP = %5lu,SUM1 = %7.2f, SUM2 = %7.2f, SUM22 = %7.2f, SUM3 = %7.2f, SUM33 = %7.2f, SUM4 = %7.2f, SUM44 = %7.2f, SUM5 = %7.2f, SUM55 = %7.2f\n",
+                                    flagvo2,emp1, shop1, year, month, expend1,sum1,sum2,sum22,sum3,sum33,sum4,sum44,sum5,sum55);
+
+                  EXEC SQL INSERT INTO PAYRECJUR
+                       VALUES (:emp1,:shop1,:year,:month,:expend1,:sum2,:sum22,:flaginv1,:flagcorr,:dbuser,:sum3,:sum4,:sum5,:sum33,:sum44,:sum55);
+
+                  gotoxy(10,57);  printf(" ");
+                  }    
+                  else {    
+                     gotoxy(10,57);  printf("U");
+                  newblip();
+
+
+              switch (flagvo2)
+                { case 1: EXEC SQL UPDATE PAYRECJUR SET
+                                     SUM2=SUM2 + :sum2,
+                                     SUM22=SUM22 + :sum22,
+                                     DBUSER=:dbuser
+                               WHERE ROWID = :rowid;
+                             break;
+
+                 case 2: EXEC SQL UPDATE PAYRECJUR SET
+                                     SUM3=SUM3 + :sum3,
+                                     SUM33=SUM33 + :sum33,
+                                     DBUSER=:dbuser
+                               WHERE ROWID = :rowid;
+                             break;
+
+                  case 3: EXEC SQL UPDATE PAYRECJUR SET
+                                     SUM4=SUM4 + :sum4,
+                                     SUM44=SUM44 + :sum44,
+                                     DBUSER=:dbuser
+                               WHERE ROWID = :rowid;
+                             break;
+ 
+                  case 4: EXEC SQL UPDATE PAYRECJUR SET
+                                     SUM5=SUM5 + :sum5,
+                                     SUM55=SUM55 + :sum55,
+                                     DBUSER=:dbuser
+                               WHERE ROWID = :rowid;
+                             break;
+
+
+                }
+
+
+                        fprintf (report, "2 КОРРЕКТИРОВКА  fl=%i EMP = %5lu, SHOP = %3i, EXP = %5lu, SUM1 = %7.2f, SUM2 = %7.2f, SUM22 = %7.2f, SUM3 = %7.2f, SUM33 = %7.2f, SUM4 = %7.2f, SUM44 = %7.2f, SUM5 = %7.2f, SUM55 = %7.2f\n",
+                                                   flagvo2, emp1, shop1, expend1, sum1,sum2,sum22,sum3,sum33,sum4,sum44,sum5,sum55);
+
+                  gotoxy(10,57);  printf(" ");
+
+                  }       
+                }    
+
+
+                i=0;
+                empOld = emp;
+                sum11 = 0.0;
+                sum21 = 0.0;
+                sum1 = 0.0;
+                sum2 = 0.0;
+                sum22 = 0.0;
+                sum3 = 0.0;
+                sum33 = 0.0;
+                sum4 = 0.0;
+                sum44 = 0.0;
+                sum5 = 0.0;
+                sum55 = 0.0;
+                emp_t[i] = emp;
+                shop_t[i] =shop;
+                pay_t[i]=pay;
+                expend_t[i] = expend;
+                flaginv_t[i] = flaginv;
+                flagvo_t[i] = flagvo;
+                sum1_t[i]=sum;
+
+            switch (flagvo)
+                { case 1: sum2_t[i]=sum;
+                          sum22_t[i]=0.0;
+                          sum3_t[i]=0.0;  
+                          sum33_t[i]=0.0 ;
+                          sum4_t[i]=0.0;  
+                          sum44_t[i]=0.0 ;
+                          sum5_t[i]=0.0;  
+                          sum55_t[i]=0.0 ;
+                           break;
+
+                  case 2: sum3_t[i]=sum;
+                          sum33_t[i]=0.0 ;
+                          sum2_t[i]=0.0;  
+                          sum22_t[i]=0.0 ;
+                          sum4_t[i]=0.0;  
+                          sum44_t[i]=0.0 ;
+                          sum5_t[i]=0.0;  
+                          sum55_t[i]=0.0 ;
+                           break;
+
+
+                  case 3: sum4_t[i]=sum;
+                          sum44_t[i]=0.0;
+                          sum2_t[i]=0.0;  
+                          sum22_t[i]=0.0 ;
+                          sum5_t[i]=0.0;  
+                          sum55_t[i]=0.0 ;
+                          sum3_t[i]=0.0;  
+                          sum33_t[i]=0.0 ;
+                          break;
+                  case 4: sum5_t[i]=sum;
+                          sum55_t[i]=0.0;
+                          sum2_t[i]=0.0;  
+                          sum22_t[i]=0.0 ;
+                          sum3_t[i]=0.0;  
+                          sum33_t[i]=0.0 ;
+                          sum4_t[i]=0.0;  
+                          sum44_t[i]=0.0 ;
+                          break;
+                }
+
+                sum11+=sum;
+                newblip();
+                i++;
+           
+           }
+     }     
+
+     EXEC SQL COMMIT;
+     EXEC SQL CLOSE C1;
+
+     Info01(100.0f);
+  }
+/* --------------------------------------------------------------------------
+   Аваpийное завеpшение pаботы с базой данных
+----------------------------------------------------------------------------*/
+  errexit:
+  dberror();
+  return(0);
+}
+
+static void  newblip(void) {
+
+static int i_blip =0,
+          mas_blip[5] = {'C', 'D', 'S', '·', '■'};
+
+   gotoxy(10,43); putchar(mas_blip[i_blip++]);
+   if (i_blip == 5)  i_blip = 0;
+}
+
+static int Info01(float num){
+  size_t   HH,MM,SS;
+  double dt;
+  time( &tend );
+  dt = difftime( tend, tstart );
+  HH = (size_t)(dt/3600.0);
+  MM = (size_t)((dt - HH*3600)/60.0);
+  SS = (size_t)(dt - 3600*HH - 60*MM);
+  gotoxy(6,42);  printf("%0.2u:%0.2u:%0.2u",HH,MM,SS);
+  gotoxy(12,12); printf("%-0.*s", (int)num/2,"██████████████████████████████████████████████████");
+  gotoxy(12,64); printf("%3.0u",(int)num);
+return(0);
+}
+
+static int panel01(){
+  char   buf[10];
+  int    statusWnd;
+  int    uskod = 0;
+
+  char *panel[9]={
+       "╒═════════════════════════════╤════════════════════════════╕",
+       "│        - Год                │ 00:00:00 - Вpемя pасчета   │",
+       "│        - Месяц              │ 000000/000000 - Обработано │",
+       "│                             │                 записей    │",
+       "│        - Таб.номер(min)     ├────────────────────────────┤",
+       "│        - Таб.номер(max)     │ [ ] - Запpос  [ ] - Запись │",
+       "├─────────────────────────────┴────────────────────────────┤",
+       "│ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ░░% │",
+       "╘══════════════════════════════════════════════════════════╛"
+       };
+
+  noblink();
+  if (panelflag == 0 ) {
+
+      vcstart(SAVESCRN);
+      CURSON;
+      VC_VIO = 1;
+      VCROW = 25;
+      VCCOL = 80;
+
+     /* Инициализация StatusLine                                               */
+     statusWnd = wxopen(24,00,24,79,NULL,ACTIVE+NOADJ,0,0);
+     setswdo(statusWnd);
+
+     /* Откpыть окно для запpоса паpаметpов pасчета                            */
+     if ((wnd = wxxopen(5,10,13,69,NULL,ACTIVE+NOADJ+CURSOR,0,0,8,-1)) == -1){
+        vcend(CLOSE);
+        return(0);
+     }
+
+     todate(sysdate(ecurdate), curdate);               /* Текущая дата */
+
+     year  = yearSet(atoi(strncpy(buf,ecurdate+6,2)));
+     month = atoi(strncpy(buf,ecurdate+3,2));
+     panelflag++;
+  }
+
+
+  for (i=0; i<9; i++) atsay(i,0,panel[i]);
+
+  xatgetc(1,4,(TEXT *)(&year),"9999",yeartest,
+         "Введите год pасчетного пеpиода",
+          NULL,113,31,-1,INTEGER+FLDBLANK,NULL);
+
+  xatgetc(2,6,(TEXT *)(&month),"99",montest,
+         "Введите номеp месяца pасчетного пеpиода",
+          NULL,113,31,-1,INTEGER+FLDBLANK,NULL);
+
+/*  xatgetc(4,3,(TEXT *)(&empik),"99999",NULL,
+         "Введите табельный номер (0-по всем)", 
+         NULL,113,31,-1,LONGINT+FLDBLANK,NULL);
+*/
+
+   xatgetc(4,3,(TEXT *)(&empmin),"99999",NULLFUNC,
+          "Введите табельный номер или 0 для расчета по заводу в целом",
+            NULL,113,31,-1,LONGINT+FLDBLANK,NULL);
+
+  xatgetc(5,3,(TEXT *)(&empmax),"99999",NULLFUNC,
+          "Введите табельный номер или 0 для расчета по заводу в целом",
+            NULL,113,31,-1,LONGINT+FLDBLANK,NULL);
+
+
+
+
+
+
+  ret = readgets();
+
+  if (ret == ESC){
+     vcend(CLOSE);
+     return(0);
+  }
+
+  statsay("Ждите, идет pасчет платежной ведомости. Для пpеpывания введите <ESC>.",DEFAULT);
+
+  CURSOFF;
+  return(1);
+}
+
+
+
+
+static int proc02 (void)
+{
+
+        fprintf(report,"vp i= %i sum11 = %7.2f \n",i,sum11);
+               sumi=0; 
+               pr=0;
+   for (j=0; j <= i; j++){  
+       flagvo1=flagvo_t[j];
+//        fprintf(report,"p2 flagvo1= %i sum1= %10.2f\n",flagvo1,sum1_t[j]);
+//        fprintf(report,"p2 sumi=%10.2f  summaxu= %10.2f\n",sumi,summaxu);
+          switch (flagvo1)
+                { case 1:  sumpr=sum1_t[j];
+                           sumo=sumpr;
+                           sumi=sumi+sumpr;
+                           summaxu=sumMax-sumi;
+                           if (pr==0)
+                           {
+                            if (summaxu >=0)
+                              { sum2_t[j]=sum1_t[j];
+                                sum22_t[j]=0.0;
+                               }
+                             else 
+                              {
+                               sumo=sumo+summaxu;
+                               sum2_t[j]=sumo;
+                               sum22_t[j]=-summaxu;
+                               pr=1;
+                              }
+                             }
+                             else 
+                             {
+                               sum2_t[j]=0;
+                               sum22_t[j]=sum1_t[j];
+                               sum33_t[j]=sum3_t[j];
+                               sum3_t[j]=0;
+                               sum44_t[j]=sum4_t[j];
+                               sum4_t[j]=0;
+                               sum55_t[j]=sum5_t[j];
+                               sum5_t[j]=0;
+                              
+                           }
+                           break;
+
+                  case 2:  sumpr=sum1_t[j];
+                           sumo=sumpr;
+                           sumi=sumi+sumpr;
+                           summaxu=sumMax-sumi;
+
+                           if (pr==0)
+                           {
+                            if (summaxu >=0)
+                              { sum3_t[j]=sum1_t[j];
+                                sum33_t[j]=0.0;
+                               }
+                             else 
+                              {
+                               sumo=sumo+summaxu;
+                               sum3_t[j]=sumo;
+                               sum33_t[j]=-summaxu;
+                               pr=1;
+                              }
+                             }
+                             else 
+                             {
+                               sum33_t[j]=sum1_t[j];
+                               sum3_t[j]=0;
+                               sum44_t[j]=sum4_t[j];
+                               sum4_t[j]=0;
+                               sum55_t[j]=sum5_t[j];
+                               sum5_t[j]=0;
+                              
+                           }
+
+                          break;
+                  case 3: sumpr=sum1_t[j];
+                           sumo=sumpr;
+                           sumi=sumi+sumpr;
+                           summaxu=sumMax-sumi;
+
+                           if (pr==0)
+                           {
+                            if (summaxu >=0)
+                              { sum4_t[j]=sum1_t[j];
+                                sum44_t[j]=0.0;
+                               }
+                             else 
+                              {
+                               sumo=sumo+summaxu;
+                               sum4_t[j]=sumo;
+                               sum44_t[j]=-summaxu;
+                               pr=1;
+                              }
+                             }
+                             else 
+                             {
+                               sum44_t[j]=sum1_t[j];
+                               sum4_t[j]=0;
+                               sum55_t[j]=sum5_t[j];
+                               sum5_t[j]=0;
+                              
+                           }
+
+                           break;
+                  case 4: sumpr=sum1_t[j];
+                           sumo=sumpr;
+                           sumi=sumi+sumpr;
+                           summaxu=sumMax-sumi;
+
+                           if (pr==0)
+                           {
+                            if (summaxu >=0)
+                              { sum5_t[j]=sum1_t[j];
+                                sum55_t[j]=0.0;
+                               }
+                             else 
+                              {
+                               sumo=sumo+summaxu;
+                               sum5_t[j]=sumo;
+                               sum55_t[j]=-summaxu;
+                               pr=1;
+                              }
+                             }
+                             else 
+                             {
+                               sum55_t[j]=sum1_t[j];
+                               sum5_t[j]=0;
+                              
+                           }
+
+                           break;
+                }
+
+      
+
+        }
+   return(0);
+}
