@@ -9,7 +9,8 @@ object DataModule2: TDataModule2
       
         'INSERT INTO PFTSUMN(EMP#,YEAR,MONTH,FLAGINV,SUMTAX1,SUMZPL,SUMZP' +
         'LMAX,SUMGPD,SUMBOL,SUMBLFSS,STAX_ZPL,STAX_GPD,STAX_BL,STAX_BLFSS' +
-        ',DBUSER,SUMBOLM,SUMBLFSSM,flagchange)'
+        ','
+      'DBUSER,SUMBOLM,SUMBLFSSM,flagchange,SUMCORR1)'
       
         '            VALUES (:emp,:year,:month,:flaginv,:sumt1,:szpl,:szp' +
         'lmax,'
@@ -18,10 +19,10 @@ object DataModule2: TDataModule2
         'st_blfss,'
       
         '                   to_char(SYSDATE,'#39'DD/MM/YYYY HH24:MI '#39') || USE' +
-        'R,:sbolm,:sblfssm,:flagchange)')
+        'R,:sbolm,:sblfssm,:flagchange,:SUMCORR1)')
     Session = OracleSession1
     Variables.Data = {
-      0300000011000000040000003A454D5003000000000000000000000005000000
+      0300000012000000040000003A454D5003000000000000000000000005000000
       3A59454152030000000000000000000000060000003A4D4F4E54480300000000
       00000000000000080000003A464C4147494E5603000000000000000000000006
       0000003A53554D5431040000000000000000000000050000003A535A504C0400
@@ -33,7 +34,8 @@ object DataModule2: TDataModule2
       00000000000000090000003A53545F424C465353040000000000000000000000
       060000003A53424F4C4D040000000000000000000000080000003A53424C4653
       534D0400000000000000000000000B0000003A464C41474348414E4745030000
-      000000000000000000}
+      000000000000000000090000003A53554D434F52523104000000000000000000
+      0000}
     Left = 568
     Top = 216
   end
@@ -193,7 +195,33 @@ object DataModule2: TDataModule2
   end
   object OracleDataSet1: TOracleDataSet
     SQL.Strings = (
-      '       SELECT DISTINCT PAYSUM.EMP# emp'
+      'SELECT E.EMP# emp'
+      '    FROM   EMPLOY E'
+      '    WHERE   ( ( DSCHDATE IS NULL OR'
+      '               DSCHDATE > TO_DATE(:day1,'#39'dd.mm.yyyy'#39') AND'
+      '               JOINDATE <= TO_DATE(:day2,'#39'dd.mm.yyyy'#39')) OR'
+      '               (DSCHDATE IS NOT NULL AND'
+      '               DSCHDATE <= TO_DATE(:day1,'#39'dd.mm.yyyy'#39') AND'
+      '               E.EMP# =(SELECT DISTINCT EMP# FROM PAYSUM P WHERE'
+      '               YEAR = :year and MONTH = :month'
+      '               AND E.EMP# = P.EMP# AND P.PAY# < 300  )))'
+      '                and e.EMP# BETWEEN  :empmin AND :empmax '
+      ''
+      ''
+      '    UNION'
+      ''
+      '    SELECT E.EMP#'
+      '    FROM   EMPOUT E'
+      
+        '    WHERE      E.EMP# =( SELECT DISTINCT EMP# FROM PAYSUM P WHER' +
+        'E'
+      '               YEAR =:year and MONTH =:month'
+      '              AND E.EMP# = P.EMP# AND P.PAY# < 300 )'
+      ' and e.EMP# BETWEEN  :empmin AND :empmax '
+      ''
+      ''
+      ''
+      '    /*   SELECT DISTINCT PAYSUM.EMP# emp'
       '       FROM   PAYSUM'
       '       WHERE  MONTH = :month AND'
       '              YEAR  = :year  AND'
@@ -202,25 +230,22 @@ object DataModule2: TDataModule2
         '              (PAYSUM.PAY# < 300 OR PAY# IN(329,328,430,431,432,' +
         '632,540,541,542,633,429,437,438))'
       '       ORDER  BY PAYSUM.EMP#'
-      '     '
+      '     */'
+      ''
       '')
     Variables.Data = {
-      0300000004000000060000003A4D4F4E54480300000000000000000000000500
+      0300000006000000060000003A4D4F4E54480300000000000000000000000500
       00003A59454152030000000000000000000000070000003A454D504D494E0300
       00000000000000000000070000003A454D504D41580300000000000000000000
-      00}
-    QBEDefinition.QBEFieldDefs = {
-      040000000700000003000000454D500100000000000400000053554D31010000
-      0000000300000050415901000000000003000000425438010000000000030000
-      0042543001000000000003000000425437010000000000030000004254390100
-      00000000}
+      00050000003A44415931050000000000000000000000050000003A4441593205
+      0000000000000000000000}
+    QBEDefinition.QBEFieldDefs = {040000000100000003000000454D50010000000000}
     Cursor = crSQLWait
     Session = OracleSession1
     Left = 568
     Top = 16
-    object OracleDataSet1EMP: TIntegerField
+    object OracleDataSet1EMP: TFloatField
       FieldName = 'EMP'
-      Required = True
     end
   end
   object OracleDataSet2: TOracleDataSet
@@ -394,7 +419,7 @@ object DataModule2: TDataModule2
     Top = 24
   end
   object OracleSession1: TOracleSession
-    Left = 696
+    Left = 695
     Top = 88
   end
   object OracleDataSet3: TOracleDataSet
@@ -781,6 +806,32 @@ object DataModule2: TDataModule2
     end
     object ODS2sumzpfYEAR_TBL: TIntegerField
       FieldName = 'YEAR_TBL'
+      Required = True
+    end
+  end
+  object ODS2_ZplMin: TOracleDataSet
+    SQL.Strings = (
+      'SELECT NVL(NVAL,0) summax,INDATE '
+      #9' FROM   SYSINDEX                                     '
+      #9' WHERE  IND#   = 3    AND                         '
+      #9'        ROWNUM = 1       AND                         '
+      #9'        INDATE = (SELECT MAX(INDATE)                 '
+      #9#9'        FROM   SYSINDEX                      '
+      #9#9'        WHERE  IND# = 3 AND               '
+      #9#9#9'     INDATE <= :date1)               '
+      '')
+    Variables.Data = {0300000001000000060000003A44415445310C0000000000000000000000}
+    QBEDefinition.QBEFieldDefs = {
+      04000000020000000600000053554D4D415801000000000006000000494E4441
+      5445010000000000}
+    Session = OracleSession1
+    Left = 131
+    Top = 141
+    object FloatField1: TFloatField
+      FieldName = 'SUMMAX'
+    end
+    object DateTimeField1: TDateTimeField
+      FieldName = 'INDATE'
       Required = True
     end
   end

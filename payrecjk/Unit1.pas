@@ -103,7 +103,7 @@ begin
   if(empmin=0) then empmin:=1;
   if(empmax=0) then empmax:=99999;
 
-
+      Application.ProcessMessages;
 
   DataModule2.SOZD;
   DataModule2.raschet1;

@@ -166,6 +166,10 @@ begin
        else  mmf:=trim(form1.Edit2.Text);
 
 
+       ChDir('c:\report\');
+
+    if not(DirectoryExists('Pensfond'))
+      then  createdir('Pensfond');
 
 
 
@@ -175,14 +179,14 @@ begin
 
          if StrToInt(office)>11 then
       begin
-       FileName:='c:\rep504_'+trim(form1.Edit3.Text)+'_'+mmf+'_'+inttostr(n_cf)+'.xlsx';
-       FileNames:='c:\rep504s_'+trim(form1.Edit3.Text)+'_'+mmf+'_'+inttostr(n_cf)+'.xlsx';
+       FileName:='c:\report\Pensfond\rep504_'+trim(form1.Edit3.Text)+'_'+mmf+'_'+inttostr(n_cf)+'.xlsx';
+       FileNames:='c:\report\Pensfond\rep504s_'+trim(form1.Edit3.Text)+'_'+mmf+'_'+inttostr(n_cf)+'.xlsx';
 
       end
        else
       begin
-       FileName:='c:\rep504_'+trim(form1.Edit3.Text)+'_'+mmf+'_'+inttostr(n_cf)+'.xls';
-       FileNames:='c:\rep504_'+trim(form1.Edit3.Text)+'_'+mmf+'_'+inttostr(n_cf)+'.xls';
+       FileName:='c:\report\Pensfond\rep504_'+trim(form1.Edit3.Text)+'_'+mmf+'_'+inttostr(n_cf)+'.xls';
+       FileNames:='c:\report\Pensfond\rep504_'+trim(form1.Edit3.Text)+'_'+mmf+'_'+inttostr(n_cf)+'.xls';
 
       end;
 

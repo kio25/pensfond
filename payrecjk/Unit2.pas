@@ -4,8 +4,14 @@ interface
 
 uses
   SysUtils, Classes, Oracle, DB, OracleData,Windows,Dialogs ,
-  Messages,  Variants,  Controls, Math,
+  Messages,  Variants,  Controls, Math,  Forms,
   StdCtrls,  ComCtrls;
+
+
+ // Graphics,  Forms,
+ // Dialogs, StdCtrls, Oracle, DB, OracleData, ComCtrls,StrUtils;
+
+
  const razmas=100;
       factmonr11=201301; // фактмон даты с которой начинаютс€ изменени€ по перерасчету постановка от но€бр€ 2012
 type
@@ -85,6 +91,13 @@ type
     OracleDataSet3EXPEND: TIntegerField;
     OracleDataSet3SUM: TFloatField;
     OracleDataSet3FLAGVO: TIntegerField;
+    ODSsum1YEAR: TIntegerField;
+    ODSsum1MONTH: TIntegerField;
+    ODSsum2YEAR: TIntegerField;
+    ODSsum2MONTH: TIntegerField;
+    ODSbolYEAR: TIntegerField;
+    ODSbolMONTH: TIntegerField;
+    OracleDataSet3MONTHYEAR: TFloatField;
 
 
   private
@@ -117,7 +130,7 @@ type
       SUM33:real;       //—умма с больн.лис.за счет пр>SumMax,с кот.не беретс€ сбор соцстраха
       SUM44:real;       //—умма с больн.лис.за счет ‘——>SumMax ,с кот.не беретс€ сбор соцстраха
       SUM55:real;       //—умма зар.по √ѕƒ>SumMax ,с кот.не беретс€ сбор соцстраха где SumMax - верхн€€ граница дл€ удержани€ из з/пл.
-
+      monthyear:Integer;
 
   end;
 
@@ -130,7 +143,7 @@ type
    //   flagcor:integer;  // флаг корректировки 0- —”ћћџ Ќј јѕЋ»¬јё“—я 1- —”ћћџ ќЅЌ”Ћяё“—я ѕќ ќƒЌќћ” EXPEND
    //   flagcor1:integer;  // флаг корректировки  0- 1 «јѕ»—№ N - Ќ≈— ќЋ№ ќ «јѕ»—≈… ѕќ ќƒЌќћ” EXPEND
       SUM:real;        //—умма начислений
-
+       monthyear:Integer;
 
   end;
 
@@ -177,7 +190,16 @@ PROCEDURE TDataModule2.SOZD;
                    end;
 
          // ѕопытка открыть файл Test.txt дл€ записи
-  AssignFile(myFile, 'c:\payrecjk.lst');
+
+         
+      ChDir('c:\report\');
+
+    if not(DirectoryExists('Pensfond'))
+      then  createdir('Pensfond');
+
+
+
+  AssignFile(myFile, 'c:\report\Pensfond\payrecjk.lst');
   ReWrite(myFile);
   writeln(myFile,'year '+Form1.Edit1.Text+' month '+Form1.Edit2.Text+' empmin '+form1.Edit4.Text+' empmax '+form1.Edit5.Text  );
 
@@ -222,6 +244,7 @@ PROCEDURE TDataModule2.SOZD;
                    OQinstmp2.SetVariable('expend',dTmp1[m].expend);
                    OQinstmp2.SetVariable('flagvo',dTmp1[m].flagvo);
                    OQinstmp2.SetVariable('PAYPRTY',dTmp1[m].payprty);
+                   OQinstmp2.SetVariable('monthyear',dTmp1[m].monthyear);
                      with OQinstmp2 do
                       try
                           Form1.StaticText1.Caption := 'instmp '+IntToStr(empf);
@@ -254,6 +277,7 @@ procedure TDataModule2.raschet1;
    var
       i,i1,emp_old: integer;
        factmon_old:real;
+       year_my,month_my:Integer;
 
     begin
  form1.ProgressBar1.Min;
@@ -293,6 +317,7 @@ procedure TDataModule2.raschet1;
           factmonf:=ODStmp4FACTMON.AsInteger;
           yearf:=int(factmonf/100);
           monthf:=factmonf-yearf*100;
+
 
      {
      //01.2012    if yearf=year  //если заданный год не совпадает с годом  factmonf, то переходим на след запись
@@ -387,6 +412,7 @@ procedure TDataModule2.raschet1;
               OracleQuery1del.SetVariable('empf',empf);
                    OracleQuery1del.setVariable('monthf',monthf);
                    OracleQuery1del.SetVariable('yearf',yearf);
+                 //  OracleQuery1del.SetVariable('monthyear',DataModule2.ODStmp4MONTHyEAR.AsInteger);
                    with OracleQuery1del do
                       try
                           Form1.StaticText1.Caption := 'del';
@@ -417,6 +443,7 @@ procedure TDataModule2.raschet1;
               writeln(myFile,'empf ',inttostr(empf),' summmax=',FloatToStr(summax),' factmon ',floattostr(factmonf));
 
 
+
                OracleDataSet3.Close;
                OracleDataSet3.SetVariable('monthf',monthf);
                OracleDataSet3.SetVariable('yearf',yearf);
@@ -440,7 +467,7 @@ procedure TDataModule2.raschet1;
 
                        end;  //    if OracleDataSet3.RecordCount<>0 then
 
-                     // добавление пустых строк в таблицу с фактмонами прошлого периода
+                    // добавление пустых строк в таблицу с фактмонами прошлого периода
                    OracleQuery2ins0.SetVariable('emp',empf);
                    OracleQuery2ins0.SetVariable('monthf',monthf);
                    OracleQuery2ins0.SetVariable('yearf',yearf);
@@ -470,7 +497,7 @@ procedure TDataModule2.raschet1;
 
 
 
-
+                   Application.ProcessMessages;
 
                   ODStmp4.Next;
                   Form1.StaticText2.Caption:=Inttostr(i);
@@ -509,6 +536,7 @@ procedure TDataModule2.zap_mas;  //запись в массив дл€ emp
       dTmp[j].EXPEND:=OracleDataSet3EXPEND.AsInteger;
       dTmp[j].flagvo:=OracleDataSet3FLAGVO.AsInteger;
       dTmp[j].SUM1:=OracleDataSet3SUM.AsFloat;
+      dTmp[j].monthyear:=OracleDataSet3MONTHYEAR.AsInteger;
                    END;
 
       sumpr:=sumpr+dTmp[j].SUM1;
@@ -617,6 +645,7 @@ procedure TDataModule2.zap_mas;  //запись в массив дл€ emp
        write(myFile, ' sum44 ',FloatToStr(dTmp[j].sum44));
        write(myFile, ' sum5 ',FloatToStr(dTmp[j].sum5));
        writeln(myFile, ' sum55 ',FloatToStr(dTmp[j].sum55));
+        writeln(myFile, ' monthyear ',intToStr(dTmp[j].monthyear));
        j:=j+1;
      form1.StaticText1.Caption:='R '+IntToStr(empf);
 
@@ -641,6 +670,7 @@ begin
          dTmp[k].SUM33:=0;
          dTmp[k].SUM44:=0;
          dTmp[k].SUM55:=0;
+         dTmp[k].monthyear:=0;
    end   ;
    pr_summax:=0;
  end;
@@ -689,7 +719,7 @@ begin
 for k1:=1 to j do
  begin
   for k:=1 to j do
-          if ((dTmp[k1].shop=dTmp[k].SHOP)
+          if ((dTmp[k1].shop=dTmp[k].SHOP) and (dTmp[k1].monthyear=dTmp[k].monthyear)
                and (dTmp[k1].EXPEND=dTmp[k].EXPEND)
                and (dTmp[k1].flagcor=0) AND (k<>k1))
           then  begin
@@ -728,6 +758,7 @@ for k1:=1 to j do
                 write(myFile, ' sum44 ',FloatToStr(dTmp[k].sum44));
                 write(myFile, ' sum5 ',FloatToStr(dTmp[k].sum5));
                 writeln(myFile, ' sum55 ',FloatToStr(dTmp[k].sum55));
+                 writeln(myFile, ' monthyear ',FloatToStr(dTmp[k].monthyear));
 
                  // запись в базу
                    OracleQuery1ins.SetVariable('emp',empf);
@@ -745,6 +776,7 @@ for k1:=1 to j do
                    OracleQuery1ins.SetVariable('sum44',dTmp[k].sum44);
                    OracleQuery1ins.SetVariable('sum5',dTmp[k].sum5);
                    OracleQuery1ins.SetVariable('sum55',dTmp[k].sum55);
+                   OracleQuery1ins.SetVariable('monthyear',dTmp[k].monthyear);
                      with OracleQuery1ins do
                       try
                           Form1.StaticText1.Caption := 'ins '+IntToStr(empf);
@@ -780,7 +812,11 @@ procedure  TDataModule2.sozd_mas(var ind:integer);
            dTmp1[k].EXPEND:=0;
            dTmp1[k].flagvo:=0;
            dTmp1[k].SUM:=0;
+           dTmp1[k].monthyear:=0;
      end;
+       Application.ProcessMessages;
+     Form1.StaticText1.Caption:='—озд '+inttostr(empf);
+      Form1.StaticText1.Refresh;
 
        ODSsum1.Close;
        ODSsum1.SetVariable('monthf',monthf);
@@ -798,6 +834,7 @@ procedure  TDataModule2.sozd_mas(var ind:integer);
                                 dTmp1[k].EXPEND:=datamodule2.ODSsum1EXPEND.AsInteger;
                                 dTmp1[k].flagvo:=datamodule2.ODSsum1FLAGVO.AsInteger;
                                 dTmp1[k].SUM:=datamodule2.ODSsum1SUM.AsFloat;
+                                dTmp1[k].monthyear:=DataModule2.ODSsum1YEAR.AsInteger*100+DataModule2.ODSsum1month.AsInteger;
                                 odssum1.Next;
                            end;
         k1:=ODSsum1.RecordCount;
@@ -872,6 +909,7 @@ procedure  TDataModule2.sozd_mas(var ind:integer);
                                             dTmp1[k1+k].EXPEND:=datamodule2.ODSsum2EXPEND.AsInteger;
                                             dTmp1[k1+k].flagvo:=datamodule2.ODSsum2FLAGVO.AsInteger;
                                             dTmp1[k1+k].SUM:=datamodule2.ODSsum2SUM.AsFloat;
+                                            dTmp1[k1+k].monthyear:=DataModule2.ODSsum2YEAR.AsInteger*100+DataModule2.ODSsum2month.AsInteger;
                                             odssum2.Next;
                                       end;
                         k1:=k1+ODSsum2.RecordCount;
@@ -948,6 +986,7 @@ procedure  TDataModule2.sozd_mas(var ind:integer);
                                             dTmp1[k1+m].EXPEND:=datamodule2.ODSsum2EXPEND.AsInteger;
                                             dTmp1[k1+m].flagvo:=datamodule2.ODSsum2FLAGVO.AsInteger;
                                             dTmp1[k1+m].SUM:=datamodule2.ODSsum2SUM.AsFloat;
+                                            dTmp1[k1+m].monthyear:=DataModule2.ODSsum2YEAR.AsInteger*100+DataModule2.ODSsum2month.AsInteger;
                                             odssum2.Next;
                                       end;
                         k1:=k1+ODSsum2.RecordCount;
@@ -973,6 +1012,7 @@ procedure  TDataModule2.sozd_mas(var ind:integer);
                                             dTmp1[k1+m].EXPEND:=datamodule2.ODSbolEXPEND.AsInteger;
                                             dTmp1[k1+m].flagvo:=datamodule2.ODSbolFLAGVO.AsInteger;
                                             dTmp1[k1+m].SUM:=datamodule2.ODSbolSUM.AsFloat;
+                                            dTmp1[k1+m].monthyear:=DataModule2.ODSbolYEAR.AsInteger*100+DataModule2.ODSbolmonth.AsInteger;
                                             odsbol.Next;
                                       end;
                         k1:=k1+ODSbol.RecordCount;

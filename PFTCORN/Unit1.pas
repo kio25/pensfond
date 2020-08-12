@@ -99,7 +99,13 @@ begin
   empmax:=StrToInt(Edit4.Text);
   pr_zap:=0;
       // Попытка открыть файл Test.txt для записи
-  AssignFile(myFile, 'c:\pftcorn.lst');
+
+            ChDir('c:\report\');
+
+    if not(DirectoryExists('Pensfond'))
+      then  createdir('Pensfond');
+
+  AssignFile(myFile, 'c:\report\Pensfond\pftcorn.lst');
   ReWrite(myFile);
 
 

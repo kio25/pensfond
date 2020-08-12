@@ -5,7 +5,7 @@ interface
 
 uses
   SysUtils, Classes, Oracle, DB, OracleData,Windows,Dialogs ,
-  Messages,  Variants,  Controls, Forms,
+  Messages,  Variants,  Controls, Forms, DateUtils,
   StdCtrls,  ComCtrls;
 
 
@@ -26,7 +26,6 @@ type
     ODS2_summaxSUMMAX: TFloatField;
     ODS2_summaxINDATE: TDateTimeField;
     OracleDataSet1: TOracleDataSet;
-    OracleDataSet1EMP: TIntegerField;
     OracleDataSet2: TOracleDataSet;
     OracleQuery2sumt1: TOracleQuery;
     OracleQuery6sblfss: TOracleQuery;
@@ -71,6 +70,10 @@ type
     ODS2sumzpfSUMZPF: TFloatField;
     ODS2sumzpfMONTH_TBL: TIntegerField;
     ODS2sumzpfYEAR_TBL: TIntegerField;
+    ODS2_ZplMin: TOracleDataSet;
+    FloatField1: TFloatField;
+    DateTimeField1: TDateTimeField;
+    OracleDataSet1EMP: TFloatField;
   private
     { Private declarations }
   public
@@ -83,7 +86,7 @@ var
   DataModule2: TDataModule2;
   i,flaginv,emp,pay: integer;
   date1: TDateTime;
-  summax,sum1,sumt1,sgpd,szplmax,szpl,st_blfss :real;
+  summax,sum1,sumt1,sgpd,szplmax,szpl,st_blfss,zplmin :real;
   sbol,sblfss,sbolm,sblfssm,st_zpl,st_gpd,st_bl :real;
 
 
@@ -119,13 +122,29 @@ ODS2_summax.Active:=false;
 ODS2_summax.Close;
 
 
+ODS2_zplmin.Close;
+ODS2_zplmin.Open;
+ODS2_zplmin.Active:=false;
+ODS2_zplmin.SetVariable('date1',date1);
+ODS2_zplmin.Active:=true;
+zplmin:= ODS2_zplmin.FieldByName('summax').Value;
+ODS2_zplmin.Active:=false;
+ODS2_zplmin.Close;
+
+
+
+
+
   OracleDataSet1.Close;
   OracleDataSet1.SetVariable('month',month);
   OracleDataSet1.SetVariable('year',year);
   OracleDataSet1.SetVariable('empmin',empmin);
   OracleDataSet1.SetVariable('empmax',empmax);
+  OracleDataSet1.SetVariable('day1',datetostr(EncodeDate(year, month, 1)));
+  OracleDataSet1.SetVariable('day2',datetostr(EndOfAMonth(year, month)));
   OracleDataSet1.Open;
   OracleDataSet1.First;
+
 
   if OracleDataSet1.RecordCount<>0
   then begin
@@ -460,7 +479,11 @@ ODS2_summax.Close;
                  Write(myFile, '1 emp '+InttoStr(emp)+' year '+ InttoStr(year)+' mn '+InttoStr(month)+' fl '+InttoStr(flaginv)+' sumt1 ');
                  Write(myFile, Floattostr(sumt1)+' sumzp1 '+Floattostr(sumzp1)+' sumzp2 '+Floattostr(sumzp2)+' szpl '+Floattostr(szpl)+' szplmax '+Floattostr(szplmax)+'sgpd '+Floattostr(sgpd)+' sbol ');
                  Write(myFile, Floattostr(sbol)+' sblfss '+Floattostr(sblfss)+' st_zpl '+Floattostr(st_zpl)+' st_gpd '+Floattostr(st_gpd)+' st_bl ');
-                 Writeln(myFile, Floattostr(st_bl)+' st_blfss '+Floattostr(st_blfss)+' sbolm '+Floattostr(sbolm)+' sblfssm '+Floattostr(sblfssm)+' flagchange 0');
+                 Write(myFile, Floattostr(st_bl)+' st_blfss '+Floattostr(st_blfss)+' sbolm '+Floattostr(sbolm)+' sblfssm '+Floattostr(sblfssm)+' flagchange 0');
+                  if (SZPl + SBOL + SBLFSS>0) and (SZPl + SBOL + SBLFSS<zplmin)
+
+                      then  Writeln(myFile,' SUMCORR1 '+floattostr(zplmin-(SZPl + SBOL + SBLFSS)))
+                      else   Writeln(myFile,' SUMCORR1 0');
 
 
                    OracleQuerydel.SetVariable('emp',emp);
@@ -502,6 +525,10 @@ ODS2_summax.Close;
                    OracleQuery14.SetVariable('sbolm',sbolm);
                    OracleQuery14.SetVariable('sblfssm',sblfssm);
                    OracleQuery14.SetVariable('flagchange',0);
+                   if (SZPl + SBOL + SBLFSS>0) and (SZPl + SBOL + SBLFSS<zplmin)
+
+                      then  OracleQuery14.SetVariable('SUMCORR1',zplmin-(SZPl + SBOL + SBLFSS))
+                      else   OracleQuery14.SetVariable('SUMCORR1',0);
 
                        with OracleQuery14 do
                       try
@@ -590,6 +617,20 @@ procedure TDataModule2.raschet2;
   OracleDataSet3.SetVariable('emp',emp);
   OracleDataSet3.Open;
   OracleDataSet3.First;
+
+
+  ODS2_zplmin.Close;
+  ODS2_zplmin.Open;
+  ODS2_zplmin.Active:=false;
+  ODS2_zplmin.SetVariable('date1',strtodate(datetostr(EncodeDate(yearf, monthf, 1))));
+  ODS2_zplmin.Active:=true;
+  zplmin:= ODS2_zplmin.FieldByName('summax').Value;
+  ODS2_zplmin.Active:=false;
+  ODS2_zplmin.Close;
+
+
+
+
 
   if OracleDataSet3.RecordCount<>0
      then  begin
@@ -960,7 +1001,13 @@ procedure TDataModule2.raschet2;
                  Write(myFile, '2 emp '+InttoStr(emp)+' year '+ InttoStr(yearf)+' mn '+InttoStr(monthf)+' fl '+InttoStr(flaginv)+' sumt1 ');
                  Write(myFile, Floattostr(sumt1_OLD)+' sumzp1 '+Floattostr(sumzp1)+' sumzp2 '+Floattostr(sumzp2)+' szpl '+Floattostr(szpl)+' szplmax '+Floattostr(szplmax)+'sgpd '+Floattostr(sgpd_OLD)+' sbol ');
                  Write(myFile, Floattostr(sbol)+' sblfss '+Floattostr(sblfss)+' st_zpl '+Floattostr(st_zpl)+' st_gpd '+Floattostr(st_gpd_OLD)+' st_bl ');
-                 Writeln(myFile, Floattostr(st_bl)+' st_blfss '+Floattostr(st_blfss)+' sbolm_OLD '+Floattostr(sbolm)+' sblfssm_OLD '+Floattostr(sblfssm_OLD)+' flagchange '+INTTOSTR(FLAGCH));
+                 Write(myFile, Floattostr(st_bl)+' st_blfss '+Floattostr(st_blfss)+' sbolm_OLD '+Floattostr(sbolm)+' sblfssm_OLD '+Floattostr(sblfssm_OLD)+' flagchange '+INTTOSTR(FLAGCH));
+                   if (SZPl + SBOL + SBLFSS>0) and (SZPl + SBOL + SBLFSS<zplmin)
+
+                       then  Writeln(myFile,' SUMCORR1 '+floattostr(zplmin-(SZPl + SBOL + SBLFSS)))
+                       else  Writeln(myFile,' SUMCORR1  0');
+
+
 
                  {
 
@@ -1009,6 +1056,13 @@ procedure TDataModule2.raschet2;
                    OracleQuery14.SetVariable('sbolm',sbolm_old);
                    OracleQuery14.SetVariable('sblfssm',sblfssm_old);
                     OracleQuery14.SetVariable('flagchange',flagch);
+                     if (SZPl + SBOL + SBLFSS>0) and (SZPl + SBOL + SBLFSS<zplmin)
+
+                      then  OracleQuery14.SetVariable('SUMCORR1',zplmin-(SZPl + SBOL + SBLFSS))
+                      else   OracleQuery14.SetVariable('SUMCORR1',0);
+
+
+
 
                        with OracleQuery14 do
                       try

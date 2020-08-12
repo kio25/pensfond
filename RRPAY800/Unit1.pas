@@ -26,6 +26,7 @@ type
     RadioButton2: TRadioButton;
     Label5: TLabel;
     Shape1: TShape;
+    txt1: TStaticText;
      procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
 //    procedure CheckBox1Click(Sender: TObject);
@@ -80,7 +81,7 @@ begin
          if not DataModule2.OracleSession1.Connected  then Halt;
    end;
 
-
+           txt1.Caption:='База  '+ DataModule2.OracleSession1.LogonDatabase;
  DecodeDate(Date, Year, Month, Day);
  Edit1.Text := IntToStr(Year);
  Edit2.Text := IntToStr(Month);

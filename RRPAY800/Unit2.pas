@@ -1,115 +1,10 @@
-{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N+,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
-{$MINSTACKSIZE $00004000}
-{$MAXSTACKSIZE $00100000}
-{$IMAGEBASE $00400000}
-{$APPTYPE GUI}
-{$WARN SYMBOL_DEPRECATED ON}
-{$WARN SYMBOL_LIBRARY ON}
-{$WARN SYMBOL_PLATFORM ON}
-{$WARN UNIT_LIBRARY ON}
-{$WARN UNIT_PLATFORM ON}
-{$WARN UNIT_DEPRECATED ON}
-{$WARN HRESULT_COMPAT ON}
-{$WARN HIDING_MEMBER ON}
-{$WARN HIDDEN_VIRTUAL ON}
-{$WARN GARBAGE ON}
-{$WARN BOUNDS_ERROR ON}
-{$WARN ZERO_NIL_COMPAT ON}
-{$WARN STRING_CONST_TRUNCED ON}
-{$WARN FOR_LOOP_VAR_VARPAR ON}
-{$WARN TYPED_CONST_VARPAR ON}
-{$WARN ASG_TO_TYPED_CONST ON}
-{$WARN CASE_LABEL_RANGE ON}
-{$WARN FOR_VARIABLE ON}
-{$WARN CONSTRUCTING_ABSTRACT ON}
-{$WARN COMPARISON_FALSE ON}
-{$WARN COMPARISON_TRUE ON}
-{$WARN COMPARING_SIGNED_UNSIGNED ON}
-{$WARN COMBINING_SIGNED_UNSIGNED ON}
-{$WARN UNSUPPORTED_CONSTRUCT ON}
-{$WARN FILE_OPEN ON}
-{$WARN FILE_OPEN_UNITSRC ON}
-{$WARN BAD_GLOBAL_SYMBOL ON}
-{$WARN DUPLICATE_CTOR_DTOR ON}
-{$WARN INVALID_DIRECTIVE ON}
-{$WARN PACKAGE_NO_LINK ON}
-{$WARN PACKAGED_THREADVAR ON}
-{$WARN IMPLICIT_IMPORT ON}
-{$WARN HPPEMIT_IGNORED ON}
-{$WARN NO_RETVAL ON}
-{$WARN USE_BEFORE_DEF ON}
-{$WARN FOR_LOOP_VAR_UNDEF ON}
-{$WARN UNIT_NAME_MISMATCH ON}
-{$WARN NO_CFG_FILE_FOUND ON}
-{$WARN MESSAGE_DIRECTIVE ON}
-{$WARN IMPLICIT_VARIANTS ON}
-{$WARN UNICODE_TO_LOCALE ON}
-{$WARN LOCALE_TO_UNICODE ON}
-{$WARN IMAGEBASE_MULTIPLE ON}
-{$WARN SUSPICIOUS_TYPECAST ON}
-{$WARN PRIVATE_PROPACCESSOR ON}
-{$WARN UNSAFE_TYPE OFF}
-{$WARN UNSAFE_CODE OFF}
-{$WARN UNSAFE_CAST OFF}
-{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N+,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
-{$MINSTACKSIZE $00004000}
-{$MAXSTACKSIZE $00100000}
-{$IMAGEBASE $00400000}
-{$APPTYPE GUI}
-{$WARN SYMBOL_DEPRECATED ON}
-{$WARN SYMBOL_LIBRARY ON}
-{$WARN SYMBOL_PLATFORM ON}
-{$WARN UNIT_LIBRARY ON}
-{$WARN UNIT_PLATFORM ON}
-{$WARN UNIT_DEPRECATED ON}
-{$WARN HRESULT_COMPAT ON}
-{$WARN HIDING_MEMBER ON}
-{$WARN HIDDEN_VIRTUAL ON}
-{$WARN GARBAGE ON}
-{$WARN BOUNDS_ERROR ON}
-{$WARN ZERO_NIL_COMPAT ON}
-{$WARN STRING_CONST_TRUNCED ON}
-{$WARN FOR_LOOP_VAR_VARPAR ON}
-{$WARN TYPED_CONST_VARPAR ON}
-{$WARN ASG_TO_TYPED_CONST ON}
-{$WARN CASE_LABEL_RANGE ON}
-{$WARN FOR_VARIABLE ON}
-{$WARN CONSTRUCTING_ABSTRACT ON}
-{$WARN COMPARISON_FALSE ON}
-{$WARN COMPARISON_TRUE ON}
-{$WARN COMPARING_SIGNED_UNSIGNED ON}
-{$WARN COMBINING_SIGNED_UNSIGNED ON}
-{$WARN UNSUPPORTED_CONSTRUCT ON}
-{$WARN FILE_OPEN ON}
-{$WARN FILE_OPEN_UNITSRC ON}
-{$WARN BAD_GLOBAL_SYMBOL ON}
-{$WARN DUPLICATE_CTOR_DTOR ON}
-{$WARN INVALID_DIRECTIVE ON}
-{$WARN PACKAGE_NO_LINK ON}
-{$WARN PACKAGED_THREADVAR ON}
-{$WARN IMPLICIT_IMPORT ON}
-{$WARN HPPEMIT_IGNORED ON}
-{$WARN NO_RETVAL ON}
-{$WARN USE_BEFORE_DEF ON}
-{$WARN FOR_LOOP_VAR_UNDEF ON}
-{$WARN UNIT_NAME_MISMATCH ON}
-{$WARN NO_CFG_FILE_FOUND ON}
-{$WARN MESSAGE_DIRECTIVE ON}
-{$WARN IMPLICIT_VARIANTS ON}
-{$WARN UNICODE_TO_LOCALE ON}
-{$WARN LOCALE_TO_UNICODE ON}
-{$WARN IMAGEBASE_MULTIPLE ON}
-{$WARN SUSPICIOUS_TYPECAST ON}
-{$WARN PRIVATE_PROPACCESSOR ON}
-{$WARN UNSAFE_TYPE OFF}
-{$WARN UNSAFE_CODE OFF}
-{$WARN UNSAFE_CAST OFF}
+
 unit Unit2;
 
 interface
 
 uses
-  SysUtils, Classes, Oracle, DB, OracleData,Windows,Dialogs ,
+  SysUtils, Classes, Oracle, DB, OracleData,Windows,Dialogs , Forms,
   Messages,  Variants,  Controls, Math,
   StdCtrls,  ComCtrls;
 type
@@ -136,6 +31,7 @@ type
     OracleDataSet1SUM55: TFloatField;
     OracleQuery1del: TOracleQuery;
     OracleQuery1ins: TOracleQuery;
+    OracleDataSet1MONTHYEAR: TFloatField;
   private
     { Private declarations }
   public
@@ -174,9 +70,15 @@ procedure TDataModule2.raschet1;
     form1.ProgressBar1.Min;
  //form1.ProgressBar1.StepIt;
      // Попытка открыть файл Test.txt для записи
-  AssignFile(myFile, 'c:\rrpay800.lst');
+       ChDir('c:\report\');
+
+    if not(DirectoryExists('Pensfond'))
+      then  createdir('Pensfond');
+
+
+  AssignFile(myFile, 'c:\report\Pensfond\rrpay800.lst');
   ReWrite(myFile);
-   Writeln(myFile, 'year '+Form1.Edit1.Text+' month '+Form1.Edit2.Text+' empmin '+Form1.Edit3.Text+' empmax '+Form1.Edit4.Text);
+  Writeln(myFile, 'year '+Form1.Edit1.Text+' month '+Form1.Edit2.Text+' empmin '+Form1.Edit3.Text+' empmax '+Form1.Edit4.Text);
 
     // Попытка открыть файл Test.txt для записи
  { AssignFile(myFile, 'c:\report.lst');
@@ -353,6 +255,7 @@ ODS2_koeff.Close;
                    OracleQuery1ins.SetVariable('sum',ruzpl);
                    OracleQuery1ins.SetVariable('flaginv',flaginv);
                    OracleQuery1ins.SetVariable('shop',shop);
+                  // OracleQuery1ins.SetVariable('monthyear',DataModule2.OracleDataSet1MONTHYEAR.AsInteger);
                      with OracleQuery1ins do
                       try
                           Form1.StaticText1.Caption := 'ins '+IntToStr(emp);
@@ -382,6 +285,7 @@ ODS2_koeff.Close;
                    OracleQuery1ins.SetVariable('sum',rubol);
                    OracleQuery1ins.SetVariable('flaginv',flaginv);
                    OracleQuery1ins.SetVariable('shop',shop);
+                  // OracleQuery1ins.SetVariable('monthyear',DataModule2.OracleDataSet1MONTHYEAR.AsInteger);
                      with OracleQuery1ins do
                       try
                           Form1.StaticText1.Caption := 'ins '+IntToStr(emp);
@@ -411,6 +315,7 @@ ODS2_koeff.Close;
                    OracleQuery1ins.SetVariable('sum',RUblfss);
                    OracleQuery1ins.SetVariable('flaginv',flaginv);
                    OracleQuery1ins.SetVariable('shop',shop);
+                  // OracleQuery1ins.SetVariable('monthyear',DataModule2.OracleDataSet1MONTHYEAR.AsInteger);
                      with OracleQuery1ins do
                       try
                           Form1.StaticText1.Caption := 'ins '+IntToStr(emp);
@@ -439,6 +344,7 @@ ODS2_koeff.Close;
                    OracleQuery1ins.SetVariable('sum',RUgpd);
                    OracleQuery1ins.SetVariable('flaginv',flaginv);
                    OracleQuery1ins.SetVariable('shop',shop);
+                  // OracleQuery1ins.SetVariable('monthyear',DataModule2.OracleDataSet1MONTHYEAR.AsInteger);
                      with OracleQuery1ins do
                       try
                           Form1.StaticText1.Caption := 'ins '+IntToStr(emp);
@@ -461,6 +367,8 @@ ODS2_koeff.Close;
 
               end;   // if  pr=0  //если указатель пустой то пишем в базу
 
+              
+                   Application.ProcessMessages;
               OracleDataSet1.Next;
               form1.ProgressBar1.StepIt;
               Form1.StaticText2.Caption:=Inttostr(i);

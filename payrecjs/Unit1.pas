@@ -22,6 +22,7 @@ type
     StaticText2: TStaticText;
     StaticText3: TStaticText;
     Label5: TLabel;
+    txt1: TStaticText;
      procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
 
@@ -86,7 +87,7 @@ begin
  Edit4.Text := IntToStr(empmin);
  Edit5.Text := IntToStr(empmax);
 
-
+         txt1.Caption:='База  '+ DataModule2.OracleSession1.LogonDatabase;
 
 end;
 

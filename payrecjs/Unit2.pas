@@ -1,115 +1,10 @@
-{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N+,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
-{$MINSTACKSIZE $00004000}
-{$MAXSTACKSIZE $00100000}
-{$IMAGEBASE $00400000}
-{$APPTYPE GUI}
-{$WARN SYMBOL_DEPRECATED ON}
-{$WARN SYMBOL_LIBRARY ON}
-{$WARN SYMBOL_PLATFORM ON}
-{$WARN UNIT_LIBRARY ON}
-{$WARN UNIT_PLATFORM ON}
-{$WARN UNIT_DEPRECATED ON}
-{$WARN HRESULT_COMPAT ON}
-{$WARN HIDING_MEMBER ON}
-{$WARN HIDDEN_VIRTUAL ON}
-{$WARN GARBAGE ON}
-{$WARN BOUNDS_ERROR ON}
-{$WARN ZERO_NIL_COMPAT ON}
-{$WARN STRING_CONST_TRUNCED ON}
-{$WARN FOR_LOOP_VAR_VARPAR ON}
-{$WARN TYPED_CONST_VARPAR ON}
-{$WARN ASG_TO_TYPED_CONST ON}
-{$WARN CASE_LABEL_RANGE ON}
-{$WARN FOR_VARIABLE ON}
-{$WARN CONSTRUCTING_ABSTRACT ON}
-{$WARN COMPARISON_FALSE ON}
-{$WARN COMPARISON_TRUE ON}
-{$WARN COMPARING_SIGNED_UNSIGNED ON}
-{$WARN COMBINING_SIGNED_UNSIGNED ON}
-{$WARN UNSUPPORTED_CONSTRUCT ON}
-{$WARN FILE_OPEN ON}
-{$WARN FILE_OPEN_UNITSRC ON}
-{$WARN BAD_GLOBAL_SYMBOL ON}
-{$WARN DUPLICATE_CTOR_DTOR ON}
-{$WARN INVALID_DIRECTIVE ON}
-{$WARN PACKAGE_NO_LINK ON}
-{$WARN PACKAGED_THREADVAR ON}
-{$WARN IMPLICIT_IMPORT ON}
-{$WARN HPPEMIT_IGNORED ON}
-{$WARN NO_RETVAL ON}
-{$WARN USE_BEFORE_DEF ON}
-{$WARN FOR_LOOP_VAR_UNDEF ON}
-{$WARN UNIT_NAME_MISMATCH ON}
-{$WARN NO_CFG_FILE_FOUND ON}
-{$WARN MESSAGE_DIRECTIVE ON}
-{$WARN IMPLICIT_VARIANTS ON}
-{$WARN UNICODE_TO_LOCALE ON}
-{$WARN LOCALE_TO_UNICODE ON}
-{$WARN IMAGEBASE_MULTIPLE ON}
-{$WARN SUSPICIOUS_TYPECAST ON}
-{$WARN PRIVATE_PROPACCESSOR ON}
-{$WARN UNSAFE_TYPE OFF}
-{$WARN UNSAFE_CODE OFF}
-{$WARN UNSAFE_CAST OFF}
-{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N+,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
-{$MINSTACKSIZE $00004000}
-{$MAXSTACKSIZE $00100000}
-{$IMAGEBASE $00400000}
-{$APPTYPE GUI}
-{$WARN SYMBOL_DEPRECATED ON}
-{$WARN SYMBOL_LIBRARY ON}
-{$WARN SYMBOL_PLATFORM ON}
-{$WARN UNIT_LIBRARY ON}
-{$WARN UNIT_PLATFORM ON}
-{$WARN UNIT_DEPRECATED ON}
-{$WARN HRESULT_COMPAT ON}
-{$WARN HIDING_MEMBER ON}
-{$WARN HIDDEN_VIRTUAL ON}
-{$WARN GARBAGE ON}
-{$WARN BOUNDS_ERROR ON}
-{$WARN ZERO_NIL_COMPAT ON}
-{$WARN STRING_CONST_TRUNCED ON}
-{$WARN FOR_LOOP_VAR_VARPAR ON}
-{$WARN TYPED_CONST_VARPAR ON}
-{$WARN ASG_TO_TYPED_CONST ON}
-{$WARN CASE_LABEL_RANGE ON}
-{$WARN FOR_VARIABLE ON}
-{$WARN CONSTRUCTING_ABSTRACT ON}
-{$WARN COMPARISON_FALSE ON}
-{$WARN COMPARISON_TRUE ON}
-{$WARN COMPARING_SIGNED_UNSIGNED ON}
-{$WARN COMBINING_SIGNED_UNSIGNED ON}
-{$WARN UNSUPPORTED_CONSTRUCT ON}
-{$WARN FILE_OPEN ON}
-{$WARN FILE_OPEN_UNITSRC ON}
-{$WARN BAD_GLOBAL_SYMBOL ON}
-{$WARN DUPLICATE_CTOR_DTOR ON}
-{$WARN INVALID_DIRECTIVE ON}
-{$WARN PACKAGE_NO_LINK ON}
-{$WARN PACKAGED_THREADVAR ON}
-{$WARN IMPLICIT_IMPORT ON}
-{$WARN HPPEMIT_IGNORED ON}
-{$WARN NO_RETVAL ON}
-{$WARN USE_BEFORE_DEF ON}
-{$WARN FOR_LOOP_VAR_UNDEF ON}
-{$WARN UNIT_NAME_MISMATCH ON}
-{$WARN NO_CFG_FILE_FOUND ON}
-{$WARN MESSAGE_DIRECTIVE ON}
-{$WARN IMPLICIT_VARIANTS ON}
-{$WARN UNICODE_TO_LOCALE ON}
-{$WARN LOCALE_TO_UNICODE ON}
-{$WARN IMAGEBASE_MULTIPLE ON}
-{$WARN SUSPICIOUS_TYPECAST ON}
-{$WARN PRIVATE_PROPACCESSOR ON}
-{$WARN UNSAFE_TYPE OFF}
-{$WARN UNSAFE_CODE OFF}
-{$WARN UNSAFE_CAST OFF}
+
 unit Unit2;
 
 interface
 
 uses
-  SysUtils, Classes, Oracle, DB, OracleData,Windows,Dialogs ,
+  SysUtils, Classes, Oracle, DB, OracleData,Windows,Dialogs , Forms,
   Messages,  Variants,  Controls, Math,
   StdCtrls,  ComCtrls;
  const razmas=60;
@@ -163,7 +58,7 @@ type
       SUM33:real;       //Сумма с больн.лис.за счет пр>SumMax,с кот.не берется сбор соцстраха
       SUM44:real;       //Сумма с больн.лис.за счет ФСС>SumMax ,с кот.не берется сбор соцстраха
       SUM55:real;       //Сумма зар.по ГПД>SumMax ,с кот.не берется сбор соцстраха где SumMax - верхняя граница для удержания из з/пл.
-
+      monthyear:integer;  //расчетный год*100+ расчетный месяц
 
   end;
 
@@ -208,7 +103,14 @@ procedure TDataModule2.raschet1;
  form1.ProgressBar1.Min;
 //form1.ProgressBar1.StepIt;
      // Попытка открыть файл Test.txt для записи
-  AssignFile(myFile, 'c:\payrecjs.lst');
+     
+      ChDir('c:\report\');
+
+    if not(DirectoryExists('Pensfond'))
+      then  createdir('Pensfond');
+
+
+  AssignFile(myFile, 'c:\report\Pensfond\payrecjs.lst');
   ReWrite(myFile);
   writeln(myFile,'year '+Form1.Edit1.Text+' month '+Form1.Edit2.Text+' empmin '+form1.Edit4.Text+' empmax '+form1.Edit5.Text  );
   obnul_mas; //обнуление массива для emp
@@ -284,6 +186,8 @@ procedure TDataModule2.raschet1;
                            zap_mas;
                           end;
 
+
+                   Application.ProcessMessages;
                   OracleDataSet1.Next;
                   form1.ProgressBar1.StepIt;
                   Form1.StaticText2.Caption:=Inttostr(i);
@@ -308,6 +212,7 @@ procedure TDataModule2.zap_mas;  //запись в массив для emp
       dTmp[j].EXPEND:=OracleDataSet1EXPEND.AsInteger;
       dTmp[j].flagvo:=OracleDataSet1FLAGVO.AsInteger;
       dTmp[j].SUM1:=OracleDataSet1SUM.AsFloat;
+      dTmp[j].monthyear:=month+year*100;
       sumpr:=sumpr+dTmp[j].SUM1;
       summaxU:=summax-sumpr;
       if summaxU>=0
@@ -357,6 +262,7 @@ procedure TDataModule2.zap_mas;  //запись в массив для emp
        write(myFile, ' sum44 ',FloatToStr(dTmp[j].sum44));
        write(myFile, ' sum5 ',FloatToStr(dTmp[j].sum5));
        writeln(myFile, ' sum55 ',FloatToStr(dTmp[j].sum55));
+       writeln(myFile, ' monthyear  ',inttoStr(dTmp[j].monthyear));
        j:=j+1;
        form1.StaticText1.Caption:='R '+IntToStr(empf)
  end  ;    //procedure TDataModule2.zap_mas;
@@ -380,6 +286,7 @@ begin
          dTmp[k].SUM33:=0;
          dTmp[k].SUM44:=0;
          dTmp[k].SUM55:=0;
+         dTmp[k].monthyear:=0;
    end   ;
    pr_summax:=0; //признак превашения summax
  end;
@@ -481,6 +388,7 @@ begin
                    OracleQuery1ins.SetVariable('sum44',dTmp[k].sum44);
                    OracleQuery1ins.SetVariable('sum5',dTmp[k].sum5);
                    OracleQuery1ins.SetVariable('sum55',dTmp[k].sum55);
+                   OracleQuery1ins.SetVariable('MONTHYEAR',dtmp[k].monthyear);
                      with OracleQuery1ins do
                       try
                           Form1.StaticText1.Caption := 'ins '+IntToStr(empf);
